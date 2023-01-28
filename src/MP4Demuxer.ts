@@ -1,5 +1,5 @@
 import MP4Box, {DataStream} from 'mp4box';
-import * as LibAVWebCodecs from './polyfill';
+import * as LibAVWebCodecs from './lib';
 
 // Wraps an MP4Box File as a WritableStream underlying sink.
 class MP4FileSink {
