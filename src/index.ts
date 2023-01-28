@@ -5,24 +5,24 @@ async function start() {
   await LibAVWebCodecs.load();
   const decoder = new LibAVWebCodecs.VideoDecoder({
     output(frame: any) {
-      console.log('[PREVIEW] frame', frame);
+      console.log('VideoDecoder output', frame);
     },
     error(e) {
-      console.error('[PREVIEW] error', e);
+      console.error('VideoDecoder error', e);
     }
   });
 
-  const demuxer = new MP4Demuxer('video.mp4', {
+  new MP4Demuxer('video.mp4', {
     onConfig(config) {
-      console.log('onConfig', config);
+      console.log('MP4Demuxer onConfig', config);
       decoder.configure(config);
     },
     onChunk(chunk) {
-      console.log('onChunk', chunk);
+      console.log('MP4Demuxer onChunk', chunk);
       decoder.decode(chunk);
     },
     setStatus(status, message) {
-      console.log('setStatus', status, message);
+      console.log('MP4Demuxer setStatus', status, message);
     }
   });
 }
