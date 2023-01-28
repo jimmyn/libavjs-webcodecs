@@ -1,4 +1,4 @@
-import * as LibAVWebCodecs from './polyfill';
+import * as LibAVWebCodecs from './lib';
 import {MP4Demuxer} from './MP4Demuxer';
 
 async function start() {

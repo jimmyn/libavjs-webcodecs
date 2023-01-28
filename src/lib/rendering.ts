@@ -43,7 +43,7 @@ let origCreateImageBitmap: any = null;
  */
 export async function load(libavOptions: any, polyfill: boolean) {
   // Get our scalers
-  scalerSync = await LibAV.LibAV({ noworker: true });
+  scalerSync = await LibAV.LibAV({noworker: true});
   scalerAsync = await LibAV.LibAV(libavOptions);
 
   // Polyfill drawImage
@@ -73,9 +73,16 @@ export async function load(libavOptions: any, polyfill: boolean) {
  * @param dHeight  Destination height
  */
 export function canvasDrawImage(
-  ctx: CanvasRenderingContext2D, image: vf.VideoFrame, sx: number,
-  sy: number, sWidth?: number, sHeight?: number, dx?: number, dy?: number,
-  dWidth?: number, dHeight?: number,
+  ctx: CanvasRenderingContext2D,
+  image: vf.VideoFrame,
+  sx: number,
+  sy: number,
+  sWidth?: number,
+  sHeight?: number,
+  dx?: number,
+  dy?: number,
+  dWidth?: number,
+  dHeight?: number
 ): void {
   if (!(image instanceof vf.VideoFrame)) {
     // Just use the original
@@ -144,7 +151,16 @@ export function canvasDrawImage(
   const frameData = new ImageData(dWidth, dHeight);
 
   const sctx = scalerSync.sws_getContext_sync(
-    image.codedWidth, image.codedHeight, format, dWidth, dHeight, scalerSync.AV_PIX_FMT_RGBA, 2, 0, 0, 0,
+    image.codedWidth,
+    image.codedHeight,
+    format,
+    dWidth,
+    dHeight,
+    scalerSync.AV_PIX_FMT_RGBA,
+    2,
+    0,
+    0,
+    0
   );
   const inFrame = scalerSync.av_frame_alloc_sync();
   const outFrame = scalerSync.av_frame_alloc_sync();
@@ -160,7 +176,7 @@ export function canvasDrawImage(
     const sb = vf.sampleBytes(image.format, p);
     const hssf = vf.horizontalSubSamplingFactor(image.format, p);
     const vssf = vf.verticalSubSamplingFactor(image.format, p);
-    const w = ~~(image.codedWidth * sb / hssf);
+    const w = ~~((image.codedWidth * sb) / hssf);
     const h = ~~(image.codedHeight / vssf);
     for (let y = 0; y < h; y++) {
       plane.push(rawU8.subarray(rawIdx, rawIdx + w));
@@ -173,7 +189,7 @@ export function canvasDrawImage(
     data: raw,
     format,
     width: image.codedWidth,
-    height: image.codedHeight,
+    height: image.codedHeight
   });
 
   // Rescale
@@ -206,14 +222,18 @@ export function canvasDrawImage(
  * Polyfill version of canvasDrawImage.
  */
 function drawImagePolyfill(
-  image: vf.VideoFrame, sx: number, sy: number, sWidth?: number,
-  sHeight?: number, dx?: number, dy?: number, dWidth?: number,
-  dHeight?: number,
+  image: vf.VideoFrame,
+  sx: number,
+  sy: number,
+  sWidth?: number,
+  sHeight?: number,
+  dx?: number,
+  dy?: number,
+  dWidth?: number,
+  dHeight?: number
 ) {
   if (image instanceof vf.VideoFrame) {
-    return canvasDrawImage(
-      this, image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight,
-    );
+    return canvasDrawImage(this, image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
   }
   return origDrawImage.apply(this, arguments);
 }
@@ -226,10 +246,11 @@ function drawImagePolyfill(
  * @param options  Other options
  */
 export function createImageBitmap(
-  image: vf.VideoFrame, opts: {
+  image: vf.VideoFrame,
+  opts: {
     resizeWidth?: number;
     resizeHeight?: number;
-  } = {},
+  } = {}
 ): Promise<ImageBitmap> {
   if (!(image instanceof vf.VideoFrame)) {
     // Just use the original
@@ -271,10 +292,8 @@ export function createImageBitmap(
   }
 
   // Normalize arguments
-  const dWidth = (typeof opts.resizeWidth === 'number')
-    ? opts.resizeWidth : image.displayWidth;
-  const dHeight = (typeof opts.resizeHeight === 'number')
-    ? opts.resizeHeight : image.displayHeight;
+  const dWidth = typeof opts.resizeWidth === 'number' ? opts.resizeWidth : image.displayWidth;
+  const dHeight = typeof opts.resizeHeight === 'number' ? opts.resizeHeight : image.displayHeight;
 
   // Convert the frame
   const frameData = new ImageData(dWidth, dHeight);
@@ -282,10 +301,19 @@ export function createImageBitmap(
   return (async () => {
     const [sctx, inFrame, outFrame] = await Promise.all([
       scalerAsync.sws_getContext(
-        image.codedWidth, image.codedHeight, format, dWidth, dHeight, scalerAsync.AV_PIX_FMT_RGBA, 2, 0, 0, 0,
+        image.codedWidth,
+        image.codedHeight,
+        format,
+        dWidth,
+        dHeight,
+        scalerAsync.AV_PIX_FMT_RGBA,
+        2,
+        0,
+        0,
+        0
       ),
       scalerAsync.av_frame_alloc(),
-      scalerAsync.av_frame_alloc(),
+      scalerAsync.av_frame_alloc()
     ]);
 
     // Convert the data (FIXME: duplication)
@@ -299,7 +327,7 @@ export function createImageBitmap(
       const sb = vf.sampleBytes(image.format, p);
       const hssf = vf.horizontalSubSamplingFactor(image.format, p);
       const vssf = vf.verticalSubSamplingFactor(image.format, p);
-      const w = ~~(image.codedWidth * sb / hssf);
+      const w = ~~((image.codedWidth * sb) / hssf);
       const h = ~~(image.codedHeight / vssf);
       for (let y = 0; y < h; y++) {
         plane.push(rawU8.subarray(rawIdx, rawIdx + w));
@@ -313,7 +341,7 @@ export function createImageBitmap(
         data: raw,
         format,
         width: image.codedWidth,
-        height: image.codedHeight,
+        height: image.codedHeight
       }),
 
       // Rescale
@@ -325,7 +353,7 @@ export function createImageBitmap(
       // And clean up
       scalerAsync.av_frame_free_js(outFrame),
       scalerAsync.av_frame_free_js(inFrame),
-      scalerAsync.sws_freeContext(sctx),
+      scalerAsync.sws_freeContext(sctx)
     ]);
 
     // Transfer all the data

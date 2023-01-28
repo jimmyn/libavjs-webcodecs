@@ -39,10 +39,12 @@ declare let LibAV: LibAVJS.LibAVWrapper;
 /**
  * Load LibAV-WebCodecs-Polyfill.
  */
-export async function load(options: {
-  polyfill?: boolean;
-  libavOptions?: any;
-} = {}) {
+export async function load(
+  options: {
+    polyfill?: boolean;
+    libavOptions?: any;
+  } = {}
+) {
   // Set up libavOptions
   const libavOptions: any = {};
   if (options.libavOptions) {
@@ -56,7 +58,7 @@ export async function load(options: {
       libavOptions.noworker = true;
 
       // Load libav
-      LibAV = <any>{ base: 'https://unpkg.com/libav.js@3.6.4' };
+      LibAV = <any>{base: 'https://unpkg.com/libav.js@3.6.4'};
       const scr = document.createElement('script');
       scr.src = 'https://unpkg.com/libav.js@3.6.4/libav-3.6.4.4.1-webm-opus-flac.js';
       scr.onload = res;
@@ -71,11 +73,17 @@ export async function load(options: {
 
   if (options.polyfill) {
     for (const exp of [
-      'EncodedAudioChunk', 'AudioData', 'AudioDecoder', 'AudioEncoder',
-      'EncodedVideoChunk', 'VideoFrame', 'VideoDecoder', 'VideoEncoder',
+      'EncodedAudioChunk',
+      'AudioData',
+      'AudioDecoder',
+      'AudioEncoder',
+      'EncodedVideoChunk',
+      'VideoFrame',
+      'VideoDecoder',
+      'VideoEncoder'
     ]) {
       if (!(<any>window)[exp]) {
-        (<any>window)[exp] = (<any> this)[exp];
+        (<any>window)[exp] = (<any>this)[exp];
       }
     }
   }

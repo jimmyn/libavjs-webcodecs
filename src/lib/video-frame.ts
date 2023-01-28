@@ -21,10 +21,8 @@
 let offscreenCanvas: HTMLCanvasElement = null;
 
 export class VideoFrame {
-  constructor(data: CanvasImageSource | BufferSource,
-    init: VideoFrameInit | VideoFrameBufferInit) {
-    if (data instanceof ArrayBuffer
-      || (<any>data).buffer instanceof ArrayBuffer) {
+  constructor(data: CanvasImageSource | BufferSource, init: VideoFrameInit | VideoFrameBufferInit) {
+    if (data instanceof ArrayBuffer || (<any>data).buffer instanceof ArrayBuffer) {
       this._constructBuffer(<BufferSource>data, <VideoFrameBufferInit>init);
     } else {
       this._constructCanvas(<CanvasImageSource>data, <VideoFrameInit>init);
@@ -69,27 +67,28 @@ export class VideoFrame {
       codedHeight: height,
       timestamp: init.timestamp,
       duration: init.duration || 0,
-      layout: [{
-        offset: 0,
-        stride: width * 4,
-      }],
+      layout: [
+        {
+          offset: 0,
+          stride: width * 4
+        }
+      ],
       displayWidth: init.displayWidth || width,
-      displayHeight: init.displayHeight || height,
+      displayHeight: init.displayHeight || height
     });
   }
 
   private _constructBuffer(data: BufferSource, init: VideoFrameBufferInit) {
-    const format = this.format = init.format;
-    const width = this.codedWidth = init.codedWidth;
-    const height = this.codedHeight = init.codedHeight;
+    const format = (this.format = init.format);
+    const width = (this.codedWidth = init.codedWidth);
+    const height = (this.codedHeight = init.codedHeight);
     this.visibleRect = new DOMRect(0, 0, width, height);
 
-    const dWidth = this.displayWidth = init.displayWidth || init.codedWidth;
-    const dHeight = this.displayHeight = init.displayHeight || init.codedHeight;
+    const dWidth = (this.displayWidth = init.displayWidth || init.codedWidth);
+    const dHeight = (this.displayHeight = init.displayHeight || init.codedHeight);
 
     // Account for non-square pixels
-    if (dWidth !== width
-      || dHeight !== height) {
+    if (dWidth !== width || dHeight !== height) {
       // Dubious (but correct) SAR calculation
       this._nonSquarePixels = true;
       this._sar_num = dWidth * height;
@@ -115,17 +114,14 @@ export class VideoFrame {
         const stride = ~~(width / sampleWidth);
         layout.push({
           offset,
-          stride,
+          stride
         });
-        offset += stride * (~~(height / sampleHeight));
+        offset += stride * ~~(height / sampleHeight);
       }
       this._layout = layout;
     }
 
-    this._data = new Uint8Array(
-      (<any>data).buffer || data,
-      (<any>data).byteOffset || 0,
-    );
+    this._data = new Uint8Array((<any>data).buffer || data, (<any>data).byteOffset || 0);
   }
 
   /* NOTE: These should all be readonly, but the constructor style above
@@ -215,16 +211,13 @@ export class VideoFrame {
     /* 8. Let combinedLayout be the result of running the Compute Layout
      * and Allocation Size algorithm with parsedRect, [[format]], and
      * optLayout. */
-    const combinedLayout = this._computeLayoutAndAllocationSize(parsedRect,
-      optLayout);
+    const combinedLayout = this._computeLayoutAndAllocationSize(parsedRect, optLayout);
 
     // 9. Return combinedLayout.
     return combinedLayout;
   }
 
-  private _parseVisibleRect(
-    defaultRect: DOMRectReadOnly, overrideRect: DOMRectReadOnly,
-  ) {
+  private _parseVisibleRect(defaultRect: DOMRectReadOnly, overrideRect: DOMRectReadOnly) {
     // 1. Let sourceRect be defaultRect
     let sourceRect = defaultRect;
 
@@ -265,9 +258,7 @@ export class VideoFrame {
     return sourceRect;
   }
 
-  private _computeLayoutAndAllocationSize(
-    parsedRect: DOMRectReadOnly, layout: PlaneLayout[],
-  ) {
+  private _computeLayoutAndAllocationSize(parsedRect: DOMRectReadOnly, layout: PlaneLayout[]) {
     // 1. Let numPlanes be the number of planes as defined by format.
     const numPlanes_ = numPlanes(this.format);
 
@@ -331,7 +322,7 @@ export class VideoFrame {
         /* 10. Set computedLayout’s sourceWidthBytes to the result of
          * the integer division of truncated parsedRect.width by
          * sampleWidthBytes. */
-        sourceWidthBytes: ~~(parsedRect.width / sampleWidthBytes),
+        sourceWidthBytes: ~~(parsedRect.width / sampleWidthBytes)
       };
 
       // 11. If layout is not undefined:
@@ -375,8 +366,7 @@ export class VideoFrame {
 
       /* 15. If planeSize or planeEnd is greater than maximum range of
        * unsigned long, return a TypeError. */
-      if (planeSize >= 0x100000000
-        || planeEnd >= 0x100000000) {
+      if (planeSize >= 0x100000000 || planeEnd >= 0x100000000) {
         throw new TypeError('Plane too large');
       }
 
@@ -401,9 +391,10 @@ export class VideoFrame {
          * earlierLayout’s destinationOffset or if
          * endOffsets[earlierPlaneIndex] is less than or equal to
          * computedLayout’s destinationOffset, continue. */
-        if (planeEnd <= earlierLayout.destinationOffset
-          || endOffsets[earlierPlaneIndex] <= computedLayout.destinationOffset) {
-
+        if (
+          planeEnd <= earlierLayout.destinationOffset ||
+          endOffsets[earlierPlaneIndex] <= computedLayout.destinationOffset
+        ) {
           // 3. Otherwise, return a TypeError.
         } else {
           throw new TypeError('Invalid plane layout');
@@ -427,7 +418,7 @@ export class VideoFrame {
       computedLayouts,
 
       // 2. Assign minAllocationSize to allocationSize.
-      allocationSize: minAllocationSize,
+      allocationSize: minAllocationSize
     };
 
     // 9. Return combinedLayout.
@@ -490,11 +481,12 @@ export class VideoFrame {
   }
 
   async copyTo(
-    destination: BufferSource, options: VideoFrameCopyToOptions = {},
+    destination: BufferSource,
+    options: VideoFrameCopyToOptions = {}
   ): Promise<PlaneLayout[]> {
     const destBuf = new Uint8Array(
       (<any>destination).buffer || destination,
-      (<any>destination).byteOffset || 0,
+      (<any>destination).byteOffset || 0
     );
 
     // 1. If [[Detached]] is true, throw an InvalidStateError DOMException.
@@ -565,10 +557,7 @@ export class VideoFrame {
       while (row < computedLayout.sourceHeight) {
         /* 1. Copy rowBytes bytes from resource starting at
          * sourceOffset to destination starting at destinationOffset. */
-        destBuf.set(
-          this._data.subarray(sourceOffset, sourceOffset + rowBytes),
-          destinationOffset,
-        );
+        destBuf.set(this._data.subarray(sourceOffset, sourceOffset + rowBytes), destinationOffset);
 
         // 2. Increment sourceOffset by sourceStride.
         sourceOffset += sourceStride;
@@ -585,7 +574,7 @@ export class VideoFrame {
       planeIndex++;
       ret.push({
         offset: computedLayout.destinationOffset,
-        stride: computedLayout.destinationStride,
+        stride: computedLayout.destinationStride
       });
     }
 
@@ -601,7 +590,7 @@ export class VideoFrame {
       codedHeight: this.codedHeight,
       timestamp: this.timestamp,
       duration: this.duration,
-      layout: this._layout,
+      layout: this._layout
     });
   }
 
@@ -647,24 +636,24 @@ export interface VideoFrameBufferInit {
 }
 
 export type VideoPixelFormat =
-// 4:2:0 Y, U, V
-  'I420' |
+  // 4:2:0 Y, U, V
+  | 'I420'
   // 4:2:0 Y, U, V, A
-  'I420A' |
+  | 'I420A'
   // 4:2:2 Y, U, V
-  'I422' |
+  | 'I422'
   // 4:4:4 Y, U, V
-  'I444' |
+  | 'I444'
   // 4:2:0 Y, UV
-  'NV12' |
+  | 'NV12'
   // 32bpp RGBA
-  'RGBA' |
+  | 'RGBA'
   // 32bpp RGBX (opaque)
-  'RGBX' |
+  | 'RGBX'
   // 32bpp BGRA
-  'BGRA' |
+  | 'BGRA'
   // 32bpp BGRX (opaque)
-  'BGRX';
+  | 'BGRX';
 
 /**
  * Number of planes in the given format.
@@ -730,9 +719,7 @@ export function sampleBytes(format: VideoPixelFormat, planeIndex: number) {
  * @param format  The format
  * @param planeIndex  The plane index
  */
-export function horizontalSubSamplingFactor(
-  format: VideoPixelFormat, planeIndex: number,
-) {
+export function horizontalSubSamplingFactor(format: VideoPixelFormat, planeIndex: number) {
   // First plane (often luma) is always full
   if (planeIndex === 0) {
     return 1;
@@ -772,9 +759,7 @@ export function horizontalSubSamplingFactor(
  * @param format  The format
  * @param planeIndex  The plane index
  */
-export function verticalSubSamplingFactor(
-  format: VideoPixelFormat, planeIndex: number,
-) {
+export function verticalSubSamplingFactor(format: VideoPixelFormat, planeIndex: number) {
   // First plane (often luma) is always full
   if (planeIndex === 0) {
     return 1;

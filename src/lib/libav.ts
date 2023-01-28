@@ -86,7 +86,7 @@ async function codecs(encoders: boolean): Promise<string[]> {
     ['libvorbis', 'vorbis'],
     ['libaom-av1', 'av01'],
     ['libvpx-vp9', 'vp09'],
-    ['libvpx', 'vp8'],
+    ['libvpx', 'vp8']
   ]) {
     if (encoders) {
       if (await libav.avcodec_find_encoder_by_name(avname)) {
@@ -113,9 +113,7 @@ export async function load() {
  * Convert a decoder from the codec registry (or libav.js-specific parameters)
  * to libav.js. Returns null if unsupported.
  */
-export function decoder(
-  codec: string | { libavjs: LibAVJSCodec },
-): LibAVJSCodec {
+export function decoder(codec: string | {libavjs: LibAVJSCodec}): LibAVJSCodec {
   if (typeof codec === 'string') {
     codec = codec.replace(/\..*/, '');
 
@@ -167,7 +165,7 @@ export function decoder(
       return null;
     }
 
-    return { codec: outCodec };
+    return {codec: outCodec};
   } else {
     return codec.libavjs;
   }
@@ -177,9 +175,7 @@ export function decoder(
  * Convert an encoder from the codec registry (or libav.js-specific parameters)
  * to libav.js. Returns null if unsupported.
  */
-export function encoder(
-  codec: string | { libavjs: LibAVJSCodec }, config: any,
-): LibAVJSCodec {
+export function encoder(codec: string | {libavjs: LibAVJSCodec}, config: any): LibAVJSCodec {
   if (typeof codec === 'string') {
     const codecParts = codec.split('.');
     codec = codecParts[0];
@@ -268,8 +264,8 @@ export function encoder(
       if (typeof ctx.pix_fmt !== 'number') {
         ctx.pix_fmt = 0;
       }
-      const width = ctx.width = config.width;
-      const height = ctx.height = config.height;
+      const width = (ctx.width = config.width);
+      const height = (ctx.height = config.height);
 
       if (config.framerate) {
         /* FIXME: We need this as a rational, not a floating point, and
@@ -291,7 +287,7 @@ export function encoder(
       }
       if (config.numberOfChannels) {
         const n = config.numberOfChannels;
-        ctx.channel_layout = (n === 1) ? 4 : ((1 << n) - 1);
+        ctx.channel_layout = n === 1 ? 4 : (1 << n) - 1;
       }
     }
 
@@ -303,7 +299,7 @@ export function encoder(
     return {
       codec: outCodec,
       ctx,
-      options,
+      options
     };
   } else {
     return codec.libavjs;

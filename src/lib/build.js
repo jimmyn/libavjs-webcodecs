@@ -26,15 +26,12 @@ for (let ai = 2; ai < process.argv.length; ai++) {
   }
 }
 
-let b = browserify({ standalone })
+let b = browserify({standalone})
   .add(main)
-  .plugin(
-    tsify,
-    {
-      noImplicitAny,
-      files: [],
-    },
-  )
+  .plugin(tsify, {
+    noImplicitAny,
+    files: []
+  })
   .plugin(browserPackFlat)
   .bundle()
   .on('error', (error) => {

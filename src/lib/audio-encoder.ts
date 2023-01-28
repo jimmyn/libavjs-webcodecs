@@ -100,48 +100,50 @@ export class AudioEncoder {
     this.state = 'configured';
 
     // 4. Queue a control message to configure the encoder using config.
-    this._p = this._p.then(async () => {
-      /* 1. Let supported be the result of running the Check
-       * Configuration Support algorithm with config. */
-      const supported = libavs.encoder(config.codec, config);
+    this._p = this._p
+      .then(async () => {
+        /* 1. Let supported be the result of running the Check
+         * Configuration Support algorithm with config. */
+        const supported = libavs.encoder(config.codec, config);
 
-      // Get the output metadata now
-      self._outputMetadata = {
-        decoderConfig: {
-          codec: config.codec,
-          // Rest will be filled in when we get data
-          sampleRate: 0,
-          numberOfChannels: 0,
-        },
-      };
-      self._outputMetadataFilled = false;
-
-      /* 2. If supported is true, assign [[codec implementation]] with an
-       * implementation supporting config. */
-      if (supported) {
-        const libav = self._libav = await libavs.get();
-
-        // And initialize
-        let frame_size: number;
-        [self._codec, self._c, self._frame, self._pkt, frame_size] = await libav.ff_init_encoder(supported.codec, supported);
-        self._pts = 0;
-        await libav.AVCodecContext_time_base_s(self._c, 1, supported.ctx.sample_rate);
-
-        // Be ready to set up the filter
-        self._filter_out_ctx = {
-          sample_rate: supported.ctx.sample_rate,
-          sample_fmt: supported.ctx.sample_fmt,
-          channel_layout: supported.ctx.channel_layout,
-          frame_size,
+        // Get the output metadata now
+        self._outputMetadata = {
+          decoderConfig: {
+            codec: config.codec,
+            // Rest will be filled in when we get data
+            sampleRate: 0,
+            numberOfChannels: 0
+          }
         };
-      }
+        self._outputMetadataFilled = false;
 
-      /* 3. Otherwise, run the Close AudioEncoder algorithm with
-       * NotSupportedError and abort these steps. */
-      else {
-        self._closeAudioEncoder(new DOMException('Unsupported codec', 'NotSupportedError'));
-      }
-    })
+        /* 2. If supported is true, assign [[codec implementation]] with an
+         * implementation supporting config. */
+        if (supported) {
+          const libav = (self._libav = await libavs.get());
+
+          // And initialize
+          let frame_size: number;
+          [self._codec, self._c, self._frame, self._pkt, frame_size] = await libav.ff_init_encoder(
+            supported.codec,
+            supported
+          );
+          self._pts = 0;
+          await libav.AVCodecContext_time_base_s(self._c, 1, supported.ctx.sample_rate);
+
+          // Be ready to set up the filter
+          self._filter_out_ctx = {
+            sample_rate: supported.ctx.sample_rate,
+            sample_fmt: supported.ctx.sample_fmt,
+            channel_layout: supported.ctx.channel_layout,
+            frame_size
+          };
+        } else {
+          /* 3. Otherwise, run the Close AudioEncoder algorithm with
+           * NotSupportedError and abort these steps. */
+          self._closeAudioEncoder(new DOMException('Unsupported codec', 'NotSupportedError'));
+        }
+      })
       .catch(this._error);
   }
 
@@ -218,159 +220,164 @@ export class AudioEncoder {
     this.encodeQueueSize++;
 
     // 5. Queue a control message to encode dataClone.
-    this._p = this._p.then(async () => {
-      const libav = self._libav;
-      const c = self._c;
-      const pkt = self._pkt;
-      const framePtr = self._frame;
+    this._p = this._p
+      .then(async () => {
+        const libav = self._libav;
+        const c = self._c;
+        const pkt = self._pkt;
+        const framePtr = self._frame;
 
-      let encodedOutputs: LibAVJS.Packet[] = null;
+        let encodedOutputs: LibAVJS.Packet[] = null;
 
-      /* 1. Attempt to use [[codec implementation]] to encode the media
-       * resource described by dataClone. */
-      try {
-        // Arrange the data
-        let raw: any = dataClone._libavGetData();
-        const nb_samples = dataClone.numberOfFrames;
-        if (!ad.isInterleaved(dataClone.format)) {
-          const split = [];
-          for (let i = 0; i < dataClone.numberOfChannels; i++) {
-            split.push(raw.subarray(i * nb_samples, (i + 1) * nb_samples));
+        /* 1. Attempt to use [[codec implementation]] to encode the media
+         * resource described by dataClone. */
+        try {
+          // Arrange the data
+          let raw: any = dataClone._libavGetData();
+          const nb_samples = dataClone.numberOfFrames;
+          if (!ad.isInterleaved(dataClone.format)) {
+            const split = [];
+            for (let i = 0; i < dataClone.numberOfChannels; i++) {
+              split.push(raw.subarray(i * nb_samples, (i + 1) * nb_samples));
+            }
+            raw = split;
           }
-          raw = split;
-        }
 
-        // Convert the format
-        let format: number;
-        switch (dataClone.format) {
-          case 'u8':
-            format = libav.AV_SAMPLE_FMT_U8;
-            break;
+          // Convert the format
+          let format: number;
+          switch (dataClone.format) {
+            case 'u8':
+              format = libav.AV_SAMPLE_FMT_U8;
+              break;
 
-          case 's16':
-            format = libav.AV_SAMPLE_FMT_S16;
-            break;
+            case 's16':
+              format = libav.AV_SAMPLE_FMT_S16;
+              break;
 
-          case 's32':
-            format = libav.AV_SAMPLE_FMT_S32;
-            break;
+            case 's32':
+              format = libav.AV_SAMPLE_FMT_S32;
+              break;
 
-          case 'f32':
-            format = libav.AV_SAMPLE_FMT_FLT;
-            break;
+            case 'f32':
+              format = libav.AV_SAMPLE_FMT_FLT;
+              break;
 
-          case 'u8-planar':
-            format = libav.AV_SAMPLE_FMT_U8P;
-            break;
+            case 'u8-planar':
+              format = libav.AV_SAMPLE_FMT_U8P;
+              break;
 
-          case 's16-planar':
-            format = libav.AV_SAMPLE_FMT_S16P;
-            break;
+            case 's16-planar':
+              format = libav.AV_SAMPLE_FMT_S16P;
+              break;
 
-          case 's32-planar':
-            format = libav.AV_SAMPLE_FMT_S32P;
-            break;
+            case 's32-planar':
+              format = libav.AV_SAMPLE_FMT_S32P;
+              break;
 
-          case 'f32-planar':
-            format = libav.AV_SAMPLE_FMT_FLTP;
-            break;
+            case 'f32-planar':
+              format = libav.AV_SAMPLE_FMT_FLTP;
+              break;
 
-          default:
-            throw new TypeError('Invalid AudioSampleFormat');
-        }
-
-        // Convert the timestamp
-        const ptsFull = Math.floor(dataClone.timestamp / 1000);
-        const pts = ptsFull % 0x100000000;
-        const ptshi = ~~(ptsFull / 0x100000000);
-
-        // Convert the channel layout
-        const cc = dataClone.numberOfChannels;
-        const channel_layout = (cc === 1) ? 4 : ((1 << cc) - 1);
-
-        // Make the frame
-        const sample_rate = dataClone.sampleRate;
-        const frame: LibAVJS.Frame = {
-          data: raw,
-          format,
-          pts,
-          ptshi,
-          channel_layout,
-          sample_rate,
-        };
-
-        // Check if the filter needs to be reconfigured
-        let preOutputs: LibAVJS.Packet[] = null;
-        if (self._filter_in_ctx) {
-          const filter_ctx = self._filter_in_ctx;
-          if (filter_ctx.sample_fmt !== frame.format
-            || filter_ctx.channel_layout !== frame.channel_layout
-            || filter_ctx.sample_rate !== frame.sample_rate) {
-            // Need a new filter! First, get anything left in the filter
-            const fframes = await self._filter([], true);
-            preOutputs = await libav.ff_encode_multi(c, framePtr, pkt, fframes);
-
-            await libav.avfilter_graph_free_js(self._filter_graph);
-            self._filter_in_ctx = null;
-            self._filter_graph = self._buffersrc_ctx = self._buffersink_ctx = 0;
+            default:
+              throw new TypeError('Invalid AudioSampleFormat');
           }
-        }
 
-        // Set up the filter
-        if (!self._filter_graph) {
-          const filter_ctx = self._filter_in_ctx = {
-            sample_rate: frame.sample_rate,
-            sample_fmt: frame.format,
-            channel_layout: frame.channel_layout,
+          // Convert the timestamp
+          const ptsFull = Math.floor(dataClone.timestamp / 1000);
+          const pts = ptsFull % 0x100000000;
+          const ptshi = ~~(ptsFull / 0x100000000);
+
+          // Convert the channel layout
+          const cc = dataClone.numberOfChannels;
+          const channel_layout = cc === 1 ? 4 : (1 << cc) - 1;
+
+          // Make the frame
+          const sample_rate = dataClone.sampleRate;
+          const frame: LibAVJS.Frame = {
+            data: raw,
+            format,
+            pts,
+            ptshi,
+            channel_layout,
+            sample_rate
           };
-          [self._filter_graph, self._buffersrc_ctx, self._buffersink_ctx] = await libav.ff_init_filter_graph('anull', filter_ctx, self._filter_out_ctx);
+
+          // Check if the filter needs to be reconfigured
+          let preOutputs: LibAVJS.Packet[] = null;
+          if (self._filter_in_ctx) {
+            const filter_ctx = self._filter_in_ctx;
+            if (
+              filter_ctx.sample_fmt !== frame.format ||
+              filter_ctx.channel_layout !== frame.channel_layout ||
+              filter_ctx.sample_rate !== frame.sample_rate
+            ) {
+              // Need a new filter! First, get anything left in the filter
+              const fframes = await self._filter([], true);
+              preOutputs = await libav.ff_encode_multi(c, framePtr, pkt, fframes);
+
+              await libav.avfilter_graph_free_js(self._filter_graph);
+              self._filter_in_ctx = null;
+              self._filter_graph = self._buffersrc_ctx = self._buffersink_ctx = 0;
+            }
+          }
+
+          // Set up the filter
+          if (!self._filter_graph) {
+            const filter_ctx = (self._filter_in_ctx = {
+              sample_rate: frame.sample_rate,
+              sample_fmt: frame.format,
+              channel_layout: frame.channel_layout
+            });
+            [self._filter_graph, self._buffersrc_ctx, self._buffersink_ctx] =
+              await libav.ff_init_filter_graph('anull', filter_ctx, self._filter_out_ctx);
+          }
+
+          // Filter
+          const fframes = await self._filter([frame]);
+
+          // And encode
+          encodedOutputs = await libav.ff_encode_multi(c, framePtr, pkt, fframes);
+          if (preOutputs) {
+            encodedOutputs = preOutputs.concat(encodedOutputs);
+          }
+          if (encodedOutputs.length && !self._outputMetadataFilled && fframes && fframes.length) {
+            await self._getOutputMetadata(fframes[0]);
+          }
+
+          /* 2. If encoding results in an error, queue a task on the control
+           * thread event loop to run the Close AudioEncoder algorithm with
+           * EncodingError. */
+        } catch (ex) {
+          self._p = self._p.then(() => {
+            self._closeAudioEncoder(ex);
+          });
         }
 
-        // Filter
-        const fframes = await self._filter([frame]);
+        /* 3. Queue a task on the control thread event loop to decrement
+         * [[encodeQueueSize]]. */
+        self.encodeQueueSize--;
 
-        // And encode
-        encodedOutputs = await libav.ff_encode_multi(c, framePtr, pkt, fframes);
-        if (preOutputs) {
-          encodedOutputs = preOutputs.concat(encodedOutputs);
+        /* 4. Let encoded outputs be a list of encoded audio data outputs
+         * emitted by [[codec implementation]]. */
+        /* 5. If encoded outputs is not empty, queue a task on the control
+         * thread event loop to run the Output EncodedAudioChunks algorithm
+         * with encoded outputs. */
+        if (encodedOutputs) {
+          self._outputEncodedAudioChunks(encodedOutputs);
         }
-        if (encodedOutputs.length && !self._outputMetadataFilled
-          && fframes && fframes.length) {
-          await self._getOutputMetadata(fframes[0]);
-        }
-
-        /* 2. If encoding results in an error, queue a task on the control
-         * thread event loop to run the Close AudioEncoder algorithm with
-         * EncodingError. */
-      } catch (ex) {
-        self._p = self._p.then(() => {
-          self._closeAudioEncoder(ex);
-        });
-      }
-
-      /* 3. Queue a task on the control thread event loop to decrement
-       * [[encodeQueueSize]]. */
-      self.encodeQueueSize--;
-
-      /* 4. Let encoded outputs be a list of encoded audio data outputs
-       * emitted by [[codec implementation]]. */
-      /* 5. If encoded outputs is not empty, queue a task on the control
-       * thread event loop to run the Output EncodedAudioChunks algorithm
-       * with encoded outputs. */
-      if (encodedOutputs) {
-        self._outputEncodedAudioChunks(encodedOutputs);
-      }
-    })
+      })
       .catch(this._error);
   }
 
   // Internal: Filter the given audio
   private async _filter(frames: LibAVJS.Frame[], fin: boolean = false) {
-    const fframes = await this._libav.ff_filter_multi(this._buffersrc_ctx,
+    const fframes = await this._libav.ff_filter_multi(
+      this._buffersrc_ctx,
       this._buffersink_ctx,
       this._frame,
       frames,
-      fin);
+      fin
+    );
     for (const frame of fframes) {
       frame.pts = this._pts;
       frame.ptshi = 0;
@@ -405,16 +412,18 @@ export class AudioEncoder {
 
     for (const packet of packets) {
       // 1. type
-      const type: eac.EncodedAudioChunkType = (packet.flags & 1) ? 'key' : 'delta';
+      const type: eac.EncodedAudioChunkType = packet.flags & 1 ? 'key' : 'delta';
 
       // 2. timestamp
-      let timestamp = Math.floor((packet.ptshi * 0x100000000 + packet.pts) / sampleRate * 1000000);
+      let timestamp = Math.floor(
+        ((packet.ptshi * 0x100000000 + packet.pts) / sampleRate) * 1000000
+      );
       if (timestamp < 0) timestamp = 0;
 
       const chunk = new eac.EncodedAudioChunk({
         type,
         timestamp,
-        data: packet.data,
+        data: packet.data
       });
 
       if (this._outputMetadataFilled) {
@@ -474,9 +483,7 @@ export class AudioEncoder {
     this._closeAudioEncoder(new DOMException('Close', 'AbortError'));
   }
 
-  static async isConfigSupported(
-    config: AudioEncoderConfig,
-  ): Promise<AudioEncoderSupport> {
+  static async isConfigSupported(config: AudioEncoderConfig): Promise<AudioEncoderSupport> {
     const enc = libavs.encoder(config.codec, config);
     let supported = false;
     if (enc) {
@@ -485,17 +492,13 @@ export class AudioEncoder {
         const [, c, frame, pkt] = await libav.ff_init_encoder(enc.codec, enc);
         await libav.ff_free_encoder(c, frame, pkt);
         supported = true;
-      } catch (ex) {
-      }
+      } catch (ex) {}
       await libavs.free(libav);
     }
 
     return {
       supported,
-      config: misc.cloneConfig(
-        config,
-        ['codec', 'sampleRate', 'numberOfChannels', 'bitrate'],
-      ),
+      config: misc.cloneConfig(config, ['codec', 'sampleRate', 'numberOfChannels', 'bitrate'])
     };
   }
 }
@@ -509,11 +512,13 @@ export interface EncodedAudioChunkMetadata {
   decoderConfig: adec.AudioDecoderConfig;
 }
 
-export type EncodedAudioChunkOutputCallback =
-  (output: eac.EncodedAudioChunk, metadata?: EncodedAudioChunkMetadata) => void;
+export type EncodedAudioChunkOutputCallback = (
+  output: eac.EncodedAudioChunk,
+  metadata?: EncodedAudioChunkMetadata
+) => void;
 
 export interface AudioEncoderConfig {
-  codec: string | { libavjs: libavs.LibAVJSCodec };
+  codec: string | {libavjs: libavs.LibAVJSCodec};
   sampleRate?: number;
   numberOfChannels?: number;
   bitrate?: number;

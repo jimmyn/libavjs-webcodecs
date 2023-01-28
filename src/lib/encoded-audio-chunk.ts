@@ -22,10 +22,10 @@ export class EncodedAudioChunk {
     this.type = init.type;
     this.timestamp = init.timestamp;
     this.duration = init.duration || 0;
-    const data = this._data = new Uint8Array(
+    const data = (this._data = new Uint8Array(
       (<any>init.data).buffer || init.data,
-      (<any>init.data).byteOffset || 0,
-    );
+      (<any>init.data).byteOffset || 0
+    ));
     this.byteLength = data.byteLength;
   }
 
@@ -45,10 +45,10 @@ export class EncodedAudioChunk {
   }
 
   copyTo(destination: BufferSource) {
-    (new Uint8Array(
+    new Uint8Array(
       (<any>destination).buffer || destination,
-      (<any>destination).byteOffset || 0,
-    )).set(this._data);
+      (<any>destination).byteOffset || 0
+    ).set(this._data);
   }
 }
 
@@ -59,6 +59,4 @@ export interface EncodedAudioChunkInit {
   data: BufferSource;
 }
 
-export type EncodedAudioChunkType =
-  'key' |
-  'delta';
+export type EncodedAudioChunkType = 'key' | 'delta';

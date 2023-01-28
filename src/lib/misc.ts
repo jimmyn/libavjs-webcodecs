@@ -17,10 +17,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-export type CodecState =
-  'unconfigured' |
-  'configured' |
-  'closed';
+export type CodecState = 'unconfigured' | 'configured' | 'closed';
 
 export type WebCodecsErrorCallback = (error: DOMException) => void;
 

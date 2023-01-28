@@ -22,13 +22,17 @@ type AudioTypedArray = Uint8Array | Int16Array | Int32Array | Float32Array;
 
 export class AudioData {
   constructor(init: AudioDataInit) {
-    const format = this.format = init.format;
-    const sampleRate = this.sampleRate = init.sampleRate;
-    const numberOfFrames = this.numberOfFrames = init.numberOfFrames;
+    const format = (this.format = init.format);
+    const sampleRate = (this.sampleRate = init.sampleRate);
+    const numberOfFrames = (this.numberOfFrames = init.numberOfFrames);
     this.numberOfChannels = init.numberOfChannels;
     this.timestamp = init.timestamp;
-    const data = this._data = audioView(format, (<any>init.data).buffer || init.data, (<any>init.data).byteOffset || 0);
-    this.duration = numberOfFrames / sampleRate * 1000000;
+    const data = (this._data = audioView(
+      format,
+      (<any>init.data).buffer || init.data,
+      (<any>init.data).byteOffset || 0
+    ));
+    this.duration = (numberOfFrames / sampleRate) * 1000000;
   }
 
   readonly format: AudioSampleFormat;
@@ -93,12 +97,10 @@ export class AudioData {
       if (options.planeIndex > 0) {
         throw new RangeError('Invalid plane');
       }
-    }
-
-    /* 4. Otherwise, if destFormat describes a planar AudioSampleFormat and
-     * if options.planeIndex is greater or equal to [[number of channels]],
-     * throw a RangeError. */
-    else if (options.planeIndex >= this.numberOfChannels) {
+    } else if (options.planeIndex >= this.numberOfChannels) {
+      /* 4. Otherwise, if destFormat describes a planar AudioSampleFormat and
+       * if options.planeIndex is greater or equal to [[number of channels]],
+       * throw a RangeError. */
       throw new RangeError('Invalid plane');
     }
 
@@ -106,8 +108,7 @@ export class AudioData {
      * not support the requested AudioSampleFormat conversion, throw a
      * NotSupportedError DOMException. Conversion to f32-planar MUST always
      * be supported. */
-    if (this.format !== destFormat
-      && destFormat !== 'f32-planar') {
+    if (this.format !== destFormat && destFormat !== 'f32-planar') {
       throw new DOMException('Only conversion to f32-planar is supported', 'NotSupportedError');
     }
 
@@ -184,9 +185,7 @@ export class AudioData {
 
     /* 8. Let planeFrames be the region of resource corresponding to
      * options.planeIndex. */
-    const planeFrames = this._data.subarray(
-      options.planeIndex * this.numberOfFrames,
-    );
+    const planeFrames = this._data.subarray(options.planeIndex * this.numberOfFrames);
 
     const frameOffset = options.frameOffset || 0;
     const numberOfChannels = this.numberOfChannels;
@@ -197,25 +196,29 @@ export class AudioData {
      * equal [[format]], convert elements to the destFormat
      * AudioSampleFormat while making the copy. */
     if (this.format === destFormat) {
-      const dest = audioView(destFormat,
+      const dest = audioView(
+        destFormat,
         (<any>destination).buffer || destination,
-        (<any>destination).byteOffset || 0);
+        (<any>destination).byteOffset || 0
+      );
 
       if (isInterleaved(destFormat)) {
-        dest.set(planeFrames.subarray(
-          frameOffset * numberOfChannels,
-          frameOffset * numberOfChannels + copyElementCount,
-        ));
+        dest.set(
+          planeFrames.subarray(
+            frameOffset * numberOfChannels,
+            frameOffset * numberOfChannels + copyElementCount
+          )
+        );
       } else {
-        dest.set(planeFrames.subarray(
-          frameOffset, frameOffset + copyElementCount,
-        ));
+        dest.set(planeFrames.subarray(frameOffset, frameOffset + copyElementCount));
       }
     } else {
       // Actual conversion necessary. Always to f32-planar.
-      const out = audioView(destFormat,
+      const out = audioView(
+        destFormat,
         (<any>destination).buffer || destination,
-        (<any>destination).byteOffset || 0);
+        (<any>destination).byteOffset || 0
+      );
 
       // First work out the conversion
       let sub = 0;
@@ -240,15 +243,15 @@ export class AudioData {
 
       // Then do it
       if (isInterleaved(this.format)) {
-        for (let i = options.planeIndex + frameOffset * numberOfChannels, o = 0;
+        for (
+          let i = options.planeIndex + frameOffset * numberOfChannels, o = 0;
           o < copyElementCount;
-          i += numberOfChannels, o++) {
+          i += numberOfChannels, o++
+        ) {
           out[o] = (planeFrames[i] - sub) / div;
         }
       } else {
-        for (let i = frameOffset, o = 0;
-          o < copyElementCount;
-          i++, o++) {
+        for (let i = frameOffset, o = 0; o < copyElementCount; i++, o++) {
           out[o] = (planeFrames[i] - sub) / div;
         }
       }
@@ -269,7 +272,7 @@ export class AudioData {
       numberOfFrames: this.numberOfFrames,
       numberOfChannels: this.numberOfChannels,
       timestamp: this.timestamp,
-      data: this._data,
+      data: this._data
     });
   }
 
@@ -288,14 +291,14 @@ export interface AudioDataInit {
 }
 
 export type AudioSampleFormat =
-  'u8' |
-  's16' |
-  's32' |
-  'f32' |
-  'u8-planar' |
-  's16-planar' |
-  's32-planar' |
-  'f32-planar';
+  | 'u8'
+  | 's16'
+  | 's32'
+  | 'f32'
+  | 'u8-planar'
+  | 's16-planar'
+  | 's32-planar'
+  | 'f32-planar';
 
 export interface AudioDataCopyToOptions {
   planeIndex: number;
@@ -312,7 +315,9 @@ export interface AudioDataCopyToOptions {
  * @param byteOffset  Offset into the buffer
  */
 function audioView(
-  format: AudioSampleFormat, buffer: ArrayBuffer, byteOffset: number,
+  format: AudioSampleFormat,
+  buffer: ArrayBuffer,
+  byteOffset: number
 ): AudioTypedArray {
   switch (format) {
     case 'u8':
