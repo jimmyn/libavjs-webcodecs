@@ -94,16 +94,16 @@ export class VideoDecoder {
         if (supported) {
           const libav = (self._libav = await libavs.get());
 
-          // Initialize
-          [self._codec, self._c, self._pkt, self._frame] = await libav.ff_init_decoder(
-            supported.codec
-          );
           const ptr = await libav.malloc(config.description.length);
           await libav.copyin_u8(ptr, config.description);
-          await libav.AVCodecContext_extradata_s(self._c, ptr);
-          await libav.AVCodecContext_extradata_size_s(self._c, config.description.length);
-          await libav.AVCodecContext_width_s(self._c, config.codedWidth);
-          await libav.AVCodecContext_height_s(self._c, config.codedHeight);
+          const parm = await libav.calloc(1, 1024);
+          await libav.AVCodecParameters_extradata_s(parm, ptr);
+          await libav.AVCodecParameters_extradata_size_s(parm, config.description.length);
+          // Initialize
+          [self._codec, self._c, self._pkt, self._frame] = await libav.ff_init_decoder(
+            supported.codec,
+            parm
+          );
           await libav.AVCodecContext_time_base_s(self._c, 1, 1000);
         } else {
           /* 3. Otherwise, run the Close VideoDecoder algorithm with
