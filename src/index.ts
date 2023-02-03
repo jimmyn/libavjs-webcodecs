@@ -3,9 +3,18 @@ import {MP4Demuxer} from './MP4Demuxer';
 
 async function start() {
   await LibAVWebCodecs.load();
+  const canvas = document.createElement('canvas');
+  document.body.appendChild(canvas);
+
   const decoder = new LibAVWebCodecs.VideoDecoder({
     output(frame: any) {
-      console.log('VideoDecoder output', frame);
+      LibAVWebCodecs.createImageBitmap(frame).then((bitmap) => {
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height);
+        frame.close();
+      });
     },
     error(e) {
       console.error('VideoDecoder error', e);
