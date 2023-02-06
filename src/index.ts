@@ -9,10 +9,12 @@ async function start() {
   const decoder = new LibAVWebCodecs.VideoDecoder({
     output(frame: any) {
       LibAVWebCodecs.createImageBitmap(frame).then((bitmap) => {
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
+        const width = bitmap.width / 2;
+        const height = bitmap.height / 2;
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height);
+        ctx.drawImage(bitmap, 0, 0, width, height);
         frame.close();
       });
     },

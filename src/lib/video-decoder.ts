@@ -105,6 +105,8 @@ export class VideoDecoder {
             parm
           );
           await libav.AVCodecContext_time_base_s(self._c, 1, 1000);
+          await libav.free(ptr);
+          await libav.free(parm);
         } else {
           /* 3. Otherwise, run the Close VideoDecoder algorithm with
            * NotSupportedError DOMException. */
@@ -295,21 +297,22 @@ export class VideoDecoder {
       // 4. data
       let raw: Uint8Array;
       {
-        let ct = 0;
-        for (let i = 0; i < frame.data.length; i++) {
-          const fd = frame.data[i];
-          for (let j = 0; j < fd.length; j++) {
-            ct += fd[j].length;
-          }
+        let size = 0;
+        const planes = vf.numPlanes(format);
+        for (let i = 0; i < planes; i++) {
+          size +=
+            (frame.width * frame.height * vf.sampleBytes(format, i)) /
+            vf.horizontalSubSamplingFactor(format, i) /
+            vf.verticalSubSamplingFactor(format, i);
         }
-        raw = new Uint8Array(ct);
-        ct = 0;
-        for (let i = 0; i < frame.data.length; i++) {
+        raw = new Uint8Array(size);
+        let off = 0;
+        for (let i = 0; i < planes; i++) {
           const fd = frame.data[i];
-          for (let j = 0; j < fd.length; j++) {
-            const part = fd[j];
-            raw.set(part, ct);
-            ct += part.length;
+          for (let j = 0; j < frame.height / vf.verticalSubSamplingFactor(format, i); j++) {
+            const part = fd[j].subarray(0, frame.width / vf.horizontalSubSamplingFactor(format, i));
+            raw.set(part, off);
+            off += part.length;
           }
         }
       }
