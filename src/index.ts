@@ -5,12 +5,13 @@ let decoder: any;
 let demuxer: any;
 
 async function start() {
-  await LibAVWebCodecs.load({polyfill: true});
+  await LibAVWebCodecs.load();
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 
-  decoder = new VideoDecoder({
+  decoder = new LibAVWebCodecs.VideoDecoder({
     output(frame: any) {
-      createImageBitmap(frame).then((bitmap) => {
+      console.log('VideoDecoder output', frame);
+      LibAVWebCodecs.createImageBitmap(frame).then((bitmap) => {
         const width = bitmap.width / 2;
         const height = bitmap.height / 2;
         canvas.width = width;
