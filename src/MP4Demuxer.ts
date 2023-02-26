@@ -1,5 +1,4 @@
 import MP4Box, {DataStream} from 'mp4box';
-import * as LibAVWebCodecs from './lib';
 
 // Wraps an MP4Box File as a WritableStream underlying sink.
 class MP4FileSink {
@@ -85,11 +84,7 @@ export class MP4Demuxer {
 
     // Generate and emit an appropriate VideoDecoderConfig.
     this.onConfig({
-      codec: {
-        libavjs: {
-          codec: 'h264'
-        }
-      },
+      codec: 'avc1.4d001f',
       codedHeight: track.video.height,
       codedWidth: track.video.width,
       description: this.description(track)
@@ -104,7 +99,7 @@ export class MP4Demuxer {
     // Generate and emit an EncodedVideoChunk for each demuxed sample.
     for (const sample of samples) {
       this.onChunk(
-        new LibAVWebCodecs.EncodedVideoChunk({
+        new EncodedVideoChunk({
           type: sample.is_sync ? 'key' : 'delta',
           timestamp: (1e6 * sample.cts) / sample.timescale,
           duration: (1e6 * sample.duration) / sample.timescale,
@@ -112,5 +107,9 @@ export class MP4Demuxer {
         })
       );
     }
+  }
+
+  close() {
+    this.file.stop();
   }
 }

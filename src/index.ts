@@ -1,14 +1,16 @@
 import * as LibAVWebCodecs from './lib';
 import {MP4Demuxer} from './MP4Demuxer';
 
-async function start() {
-  await LibAVWebCodecs.load();
-  const canvas = document.createElement('canvas');
-  document.body.appendChild(canvas);
+let decoder: any;
+let demuxer: any;
 
-  const decoder = new LibAVWebCodecs.VideoDecoder({
+async function start() {
+  await LibAVWebCodecs.load({polyfill: true});
+  const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+
+  decoder = new VideoDecoder({
     output(frame: any) {
-      LibAVWebCodecs.createImageBitmap(frame).then((bitmap) => {
+      createImageBitmap(frame).then((bitmap) => {
         const width = bitmap.width / 2;
         const height = bitmap.height / 2;
         canvas.width = width;
@@ -23,7 +25,7 @@ async function start() {
     }
   });
 
-  new MP4Demuxer('video.mp4', {
+  demuxer = new MP4Demuxer('video.mp4', {
     onConfig(config) {
       console.log('MP4Demuxer onConfig', config);
       decoder.configure(config);
@@ -38,4 +40,13 @@ async function start() {
   });
 }
 
-void start();
+function stop() {
+  decoder?.flush();
+  decoder?.close();
+  demuxer?.close();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('start')?.addEventListener('click', start);
+  document.getElementById('stop')?.addEventListener('click', stop);
+});

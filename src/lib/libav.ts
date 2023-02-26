@@ -86,7 +86,8 @@ async function codecs(encoders: boolean): Promise<string[]> {
     ['libvorbis', 'vorbis'],
     ['libaom-av1', 'av01'],
     ['libvpx-vp9', 'vp09'],
-    ['libvpx', 'vp8']
+    ['libvpx', 'vp8'],
+    ['h264', 'avc1'],
   ]) {
     if (encoders) {
       if (await libav.avcodec_find_encoder_by_name(avname)) {
@@ -113,9 +114,11 @@ export async function load() {
  * Convert a decoder from the codec registry (or libav.js-specific parameters)
  * to libav.js. Returns null if unsupported.
  */
-export function decoder(codec: string | {libavjs: LibAVJSCodec}): LibAVJSCodec {
+export function decoder(codec: string | { libavjs: LibAVJSCodec }): LibAVJSCodec {
   if (typeof codec === 'string') {
     codec = codec.replace(/\..*/, '');
+
+    console.log('[PREVIEW] codec', codec);
 
     let outCodec: string = codec;
     switch (codec) {
@@ -144,12 +147,15 @@ export function decoder(codec: string | {libavjs: LibAVJSCodec}): LibAVJSCodec {
         outCodec = 'libvpx';
         break;
 
+      case 'avc1':
+        outCodec = 'h264';
+        break;
+
       // Unsupported
       case 'mp3':
       case 'mp4a':
       case 'ulaw':
       case 'alaw':
-      case 'avc1':
       case 'avc3':
       case 'hev1':
       case 'hvc1':
@@ -165,7 +171,7 @@ export function decoder(codec: string | {libavjs: LibAVJSCodec}): LibAVJSCodec {
       return null;
     }
 
-    return {codec: outCodec};
+    return { codec: outCodec };
   } else {
     return codec.libavjs;
   }
@@ -175,7 +181,7 @@ export function decoder(codec: string | {libavjs: LibAVJSCodec}): LibAVJSCodec {
  * Convert an encoder from the codec registry (or libav.js-specific parameters)
  * to libav.js. Returns null if unsupported.
  */
-export function encoder(codec: string | {libavjs: LibAVJSCodec}, config: any): LibAVJSCodec {
+export function encoder(codec: string | { libavjs: LibAVJSCodec }, config: any): LibAVJSCodec {
   if (typeof codec === 'string') {
     const codecParts = codec.split('.');
     codec = codecParts[0];
@@ -299,7 +305,7 @@ export function encoder(codec: string | {libavjs: LibAVJSCodec}, config: any): L
     return {
       codec: outCodec,
       ctx,
-      options
+      options,
     };
   } else {
     return codec.libavjs;
