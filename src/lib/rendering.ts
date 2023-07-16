@@ -60,6 +60,69 @@ export async function load(libavOptions: any, polyfill: boolean) {
 }
 
 /**
+ * Convert the format to libav.js
+ * @param format The image format
+ * @param scaler The scaler to use
+ */
+function convertFormat(format: string, scaler: any): number {
+  switch (format) {
+    case 'I420':
+      return scaler.AV_PIX_FMT_YUV420P;
+
+    case 'I420A':
+      return scaler.AV_PIX_FMT_YUVA420P;
+
+    case 'I422':
+      return scaler.AV_PIX_FMT_YUV422P;
+
+    case 'I444':
+      return scaler.AV_PIX_FMT_YUV444P;
+
+    case 'NV12':
+      return scaler.AV_PIX_FMT_NV12;
+
+    case 'RGBA':
+    case 'RGBX':
+      return scaler.AV_PIX_FMT_RGBA;
+
+    case 'BGRA':
+    case 'BGRX':
+      return scaler.AV_PIX_FMT_BGRA;
+
+    default:
+      return scaler.AV_PIX_FMT_RGBA;
+  }
+}
+
+/**
+ * Convert the data
+ * @param image The image to convert
+ */
+function convertData(image: vf.VideoFrame): Uint8Array[][] {
+  const rawU8 = image._libavGetData();
+  let rawIdx = 0;
+  const raw: Uint8Array[][] = [];
+  const planes = vf.numPlanes(image.format);
+
+  for (let p = 0; p < planes; p++) {
+    const plane: Uint8Array[] = [];
+    raw.push(plane);
+    const sb = vf.sampleBytes(image.format, p);
+    const hssf = vf.horizontalSubSamplingFactor(image.format, p);
+    const vssf = vf.verticalSubSamplingFactor(image.format, p);
+    const w = ~~((image.codedWidth * sb) / hssf);
+    const h = ~~(image.codedHeight / vssf);
+
+    for (let y = 0; y < h; y++) {
+      plane.push(rawU8.subarray(rawIdx, rawIdx + w));
+      rawIdx += w;
+    }
+  }
+
+  return raw;
+}
+
+/**
  * Draw this video frame on this canvas, synchronously.
  * @param ctx  CanvasRenderingContext2D to draw on
  * @param image  VideoFrame (or anything else) to draw
@@ -114,38 +177,7 @@ export function canvasDrawImage(
   }
 
   // Convert the format to libav.js
-  let format: number = scalerSync.AV_PIX_FMT_RGBA;
-  switch (image.format) {
-    case 'I420':
-      format = scalerSync.AV_PIX_FMT_YUV420P;
-      break;
-
-    case 'I420A':
-      format = scalerSync.AV_PIX_FMT_YUVA420P;
-      break;
-
-    case 'I422':
-      format = scalerSync.AV_PIX_FMT_YUV422P;
-      break;
-
-    case 'I444':
-      format = scalerSync.AV_PIX_FMT_YUV444P;
-      break;
-
-    case 'NV12':
-      format = scalerSync.AV_PIX_FMT_NV12;
-      break;
-
-    case 'RGBA':
-    case 'RGBX':
-      format = scalerSync.AV_PIX_FMT_RGBA;
-      break;
-
-    case 'BGRA':
-    case 'BGRX':
-      format = scalerSync.AV_PIX_FMT_BGRA;
-      break;
-  }
+  let format: number = convertFormat(image.format, scalerSync);
 
   // Convert the frame synchronously
   const frameData = new ImageData(dWidth, dHeight);
@@ -166,23 +198,7 @@ export function canvasDrawImage(
   const outFrame = scalerSync.av_frame_alloc_sync();
 
   // Convert the data (FIXME: duplication)
-  const rawU8 = image._libavGetData();
-  let rawIdx = 0;
-  const raw: Uint8Array[][] = [];
-  const planes = vf.numPlanes(image.format);
-  for (let p = 0; p < planes; p++) {
-    const plane: Uint8Array[] = [];
-    raw.push(plane);
-    const sb = vf.sampleBytes(image.format, p);
-    const hssf = vf.horizontalSubSamplingFactor(image.format, p);
-    const vssf = vf.verticalSubSamplingFactor(image.format, p);
-    const w = ~~((image.codedWidth * sb) / hssf);
-    const h = ~~(image.codedHeight / vssf);
-    for (let y = 0; y < h; y++) {
-      plane.push(rawU8.subarray(rawIdx, rawIdx + w));
-      rawIdx += w;
-    }
-  }
+  const raw: Uint8Array[][] = convertData(image);
 
   // Copy it in
   scalerSync.ff_copyin_frame_sync(inFrame, {
@@ -258,38 +274,7 @@ export function createImageBitmap(
   }
 
   // Convert the format to libav.js
-  let format: number = scalerAsync.AV_PIX_FMT_RGBA;
-  switch (image.format) {
-    case 'I420':
-      format = scalerAsync.AV_PIX_FMT_YUV420P;
-      break;
-
-    case 'I420A':
-      format = scalerAsync.AV_PIX_FMT_YUVA420P;
-      break;
-
-    case 'I422':
-      format = scalerAsync.AV_PIX_FMT_YUV422P;
-      break;
-
-    case 'I444':
-      format = scalerAsync.AV_PIX_FMT_YUV444P;
-      break;
-
-    case 'NV12':
-      format = scalerAsync.AV_PIX_FMT_NV12;
-      break;
-
-    case 'RGBA':
-    case 'RGBX':
-      format = scalerAsync.AV_PIX_FMT_RGBA;
-      break;
-
-    case 'BGRA':
-    case 'BGRX':
-      format = scalerAsync.AV_PIX_FMT_BGRA;
-      break;
-  }
+  let format: number = convertFormat(image.format, scalerAsync);
 
   // Normalize arguments
   const dWidth = typeof opts.resizeWidth === 'number' ? opts.resizeWidth : image.displayWidth;
@@ -316,24 +301,8 @@ export function createImageBitmap(
       scalerAsync.av_frame_alloc()
     ]);
 
-    // Convert the data (FIXME: duplication)
-    const rawU8 = image._libavGetData();
-    let rawIdx = 0;
-    const raw: Uint8Array[][] = [];
-    const planes = vf.numPlanes(image.format);
-    for (let p = 0; p < planes; p++) {
-      const plane: Uint8Array[] = [];
-      raw.push(plane);
-      const sb = vf.sampleBytes(image.format, p);
-      const hssf = vf.horizontalSubSamplingFactor(image.format, p);
-      const vssf = vf.verticalSubSamplingFactor(image.format, p);
-      const w = ~~((image.codedWidth * sb) / hssf);
-      const h = ~~(image.codedHeight / vssf);
-      for (let y = 0; y < h; y++) {
-        plane.push(rawU8.subarray(rawIdx, rawIdx + w));
-        rawIdx += w;
-      }
-    }
+    // Convert the data
+    const raw: Uint8Array[][] = convertData(image);
 
     const [, , frame] = await Promise.all([
       // Copy it in
